@@ -39,11 +39,11 @@ public class MainActivity extends Activity {
 
     private static class PendingDownload {
         String filename;
-        String base64Data;
+        String content;
         String mimeType;
-        PendingDownload(String filename, String base64Data, String mimeType) {
+        PendingDownload(String filename, String content, String mimeType) {
             this.filename = filename;
-            this.base64Data = base64Data;
+            this.content = content;
             this.mimeType = mimeType;
         }
     }
@@ -138,8 +138,7 @@ public class MainActivity extends Activity {
 
         Uri uri = data.getData();
         try {
-            byte[] fileData = android.util.Base64.decode(
-                    pending.base64Data, android.util.Base64.DEFAULT);
+            byte[] fileData = pending.content.getBytes("UTF-8");
             if (fileData == null || fileData.length == 0) {
                 Toast.makeText(this, "保存失败：文件为空", Toast.LENGTH_SHORT).show();
                 return;
@@ -179,10 +178,9 @@ public class MainActivity extends Activity {
             + "    var url = _createObjectURL(blob);"
             + "    var reader = new FileReader();"
             + "    reader.onload = function() {"
-            + "      var base64 = reader.result.split(',')[1];"
-            + "      _blobStore.set(url, {data: base64, mime: blob.type});"
+            + "      _blobStore.set(url, {data: reader.result, mime: blob.type});"
             + "    };"
-            + "    reader.readAsDataURL(blob);"
+            + "    reader.readAsText(blob);"
             + "    return url;"
             + "  };"
             + "  document.addEventListener('click', function(e) {"
@@ -219,12 +217,12 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void requestSaveFile(final String filename,
-                                     final String base64Data,
+                                     final String content,
                                      final String mimeType) {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override
                 public void run() {
-                    pendingDownload = new PendingDownload(filename, base64Data, mimeType);
+                    pendingDownload = new PendingDownload(filename, content, mimeType);
                     String resolvedMime = (mimeType != null && !mimeType.isEmpty())
                             ? mimeType : "text/plain";
 
