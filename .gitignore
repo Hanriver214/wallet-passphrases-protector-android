@@ -1,0 +1,27 @@
+# Keep local.properties out of VCS (machine-specific SDK path)
+local.properties
+
+# Gradle
+.gradle/
+build/
+/*/build/
+*/out/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Native
+*.apk
+*.aab
+*.ap_
+*.dex
+*.keystore
+!debug.keystore
+
+# Keystore
+*.jks
+
+# Logs
+*.log

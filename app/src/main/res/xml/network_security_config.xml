@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+        No INTERNET permission is declared in the manifest, so this app cannot
+        make network requests at all. This config additionally forbids
+        cleartext traffic as a defense-in-depth measure and only trusts the
+        system certificate store (which is irrelevant given no network).
+    -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system"/>
+        </trust-anchors>
+    </base-config>
+</network-security-config>
