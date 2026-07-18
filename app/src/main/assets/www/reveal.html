@@ -102,14 +102,23 @@ $query('#help-mimabiao-btn').addEventListener('click', event => {
   }
 });
 
-uploadBtn.addEventListener('change', async (event) => {
+uploadBtn.addEventListener('click', event => {
+  if (window.AndroidLoader) {
+    event.preventDefault();
+    AndroidLoader.openFile();
+  }
+});
+
+window._onFileLoaded = function(filename, content) {
   allAlertsWhenUpload.forEach(node => node.style.display = "none");
-  const file = event.target.files[0];
-  if (!file) return;
+  if (!content) {
+    alertWhenUpload.style.display = "block";
+    alertWhenUpload.innerText = "出错： " + filename;
+    return;
+  }
   try {
-    // https://developer.mozilla.org/en-US/docs/Web/API/Blob/text
-    const mimabiao64 = await file.text();
-    const mimabiao = checkGetMimabiao(mimabiao64);
+    const mimabiao = checkGetMimabiao(content.trim());
+    if (!mimabiao) return;
     for (let i = 0; i < mimabiao.length; i++) {
       mimabiao_cn2en.set(chineseWords[i], mimabiao[i]);
     }
@@ -121,7 +130,7 @@ uploadBtn.addEventListener('change', async (event) => {
       alertWhenUpload.style.display = "block";
       alertWhenUpload.innerText = "出错： " + error;
   }
-});
+};
 
 submitBtn.addEventListener('click', event => {
   alertSubmitError.innerText = "";
