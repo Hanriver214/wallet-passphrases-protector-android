@@ -10,16 +10,31 @@ android {
         applicationId "com.walletprotector.android"
         minSdk 26
         targetSdk 34
-        versionCode 6
-        versionName "1.0.6"
+        versionCode 7
+        versionName "1.0.7"
         vectorDrawables.useSupportLibrary = true
+    }
+
+    signingConfigs {
+        release {
+            def ks = System.getenv("KEYSTORE_BASE64")
+            if (ks != null) {
+                storeFile = file("${buildDir}/release.keystore")
+                storePassword = System.getenv("STORE_PASSWORD") ?: ""
+                keyAlias = System.getenv("KEY_ALIAS") ?: ""
+                keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+            }
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
-            // Sign release with the debug key (per user choice).
-            signingConfig signingConfigs.debug
+            if (System.getenv("KEYSTORE_BASE64") != null) {
+                signingConfig signingConfigs.release
+            } else {
+                signingConfig signingConfigs.debug
+            }
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -27,6 +42,20 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// Decode keystore from base64 env var before release build
+tasks.whenTaskAdded { task ->
+    if (task.name.startsWith('packageRelease') || task.name.startsWith('signRelease')) {
+        task.doFirst {
+            def ks = System.getenv("KEYSTORE_BASE64")
+            if (ks != null) {
+                def ksFile = file("${buildDir}/release.keystore")
+                ksFile.parentFile.mkdirs()
+                ksFile.bytes = Base64.decoder.decode(ks)
+            }
+        }
     }
 }
 
