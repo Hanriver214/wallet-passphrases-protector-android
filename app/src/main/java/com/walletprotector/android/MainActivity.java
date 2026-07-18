@@ -59,6 +59,16 @@ public class MainActivity extends Activity {
         settings.setDisplayZoomControls(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
 
+        // 让 WebView 的 prefers-color-scheme 媒体查询跟随系统深色模式
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                androidx.webkit.WebSettingsCompat.setAlgorithmicDarkeningAllowed(settings, true);
+            } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                androidx.webkit.WebSettingsCompat.setForceDark(settings, androidx.webkit.WebSettingsCompat.FORCE_DARK_AUTO);
+            }
+        } catch (Exception ignored) {
+        }
+
         webView.addJavascriptInterface(new SaveBridge(), "AndroidSave");
         webView.addJavascriptInterface(new LoaderBridge(), "AndroidLoader");
 

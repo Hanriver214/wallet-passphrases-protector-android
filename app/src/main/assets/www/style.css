@@ -1,6 +1,60 @@
+:root {
+  --bg-color: #ffffff;
+  --text-color: #333333;
+  --link-color: #1f6feb;
+  --textarea-bg: #ffffff;
+  --textarea-text: #000000;
+  --output-bg: #f0f0f0;
+  --output-text: #000000;
+  --alert-info-color: #666666;
+  --alert-info-bg: #eeeeee;
+  --alert-blue-color: #1f6feb;
+  --alert-blue-bg: #eeeeee;
+  --alert-danger-color: #d32f2f;
+  --alert-danger-bg: #eeeeee;
+  --caution-grey-color: #333333;
+  --caution-grey-bg: #cccccc;
+  --footer-color: #888888;
+  --border-color: #cccccc;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #121212;
+    --text-color: #e0e0e0;
+    --link-color: #8ab4f8;
+    --textarea-bg: #1e1e1e;
+    --textarea-text: #e0e0e0;
+    --output-bg: #2a2a2a;
+    --output-text: #e0e0e0;
+    --alert-info-color: #aaaaaa;
+    --alert-info-bg: #2a2a2a;
+    --alert-blue-color: #8ab4f8;
+    --alert-blue-bg: #2a2a2a;
+    --alert-danger-color: #ef5350;
+    --alert-danger-bg: #2a2a2a;
+    --caution-grey-color: #e0e0e0;
+    --caution-grey-bg: #3a3a3a;
+    --footer-color: #888888;
+    --border-color: #444444;
+  }
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
 textarea {
   font-size: 130%;
   font-family: 'Courier New', monospace;
+  background-color: var(--textarea-bg);
+  color: var(--textarea-text);
+  border: 1px solid var(--border-color);
+}
+
+a {
+  color: var(--link-color);
 }
 
 #alert-wrong-words,
@@ -19,30 +73,44 @@ textarea {
 }
 
 .caution-text {
-  color: red;
+  color: #d32f2f;
 }
 .caution-grey {
-  color: #333;
-  background-color: #ccc;
+  color: var(--caution-grey-color);
+  background-color: var(--caution-grey-bg);
 }
 
 .alert-info {
-  color: #999;
-  background-color: #eee;
+  color: var(--alert-info-color);
+  background-color: var(--alert-info-bg);
 }
 .alert-blue {
-  color: blue;
-  background-color: #eee;
+  color: var(--alert-blue-color);
+  background-color: var(--alert-blue-bg);
 }
 .alert-danger {
-  color: red;
-  background-color: #eee;
+  color: var(--alert-danger-color);
+  background-color: var(--alert-danger-bg);
 }
 
 footer {
-  color: grey;
+  color: var(--footer-color);
   text-align: center;
   font-size: smaller;
   margin-top: 150px;
   margin-bottom: 20px;
+}
+
+button {
+  background-color: var(--link-color);
+  color: #ffffff;
+  border: none;
+  padding: 6px 16px;
+  font-size: 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+input[type="file"] {
+  color: var(--text-color);
 }
