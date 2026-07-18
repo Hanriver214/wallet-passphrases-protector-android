@@ -19,15 +19,6 @@ import android.widget.Toast;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/**
- * Entry activity. Hosts a single WebView that loads the bundled, fully-local
- * web assets from file:///android_asset/www/index.html. No network permission
- * is declared in the manifest, so the app is strictly offline.
- *
- * File downloads (e.g. the generated "密码表" cipher table) use the Storage
- * Access Framework (ACTION_CREATE_DOCUMENT) so the user picks the save
- * location themselves — no storage permissions needed.
- */
 public class MainActivity extends Activity {
 
     private WebView webView;
@@ -40,11 +31,9 @@ public class MainActivity extends Activity {
     private static class PendingDownload {
         String filename;
         String content;
-        String mimeType;
-        PendingDownload(String filename, String content, String mimeType) {
+        PendingDownload(String filename, String content) {
             this.filename = filename;
             this.content = content;
-            this.mimeType = mimeType;
         }
     }
 
@@ -71,15 +60,7 @@ public class MainActivity extends Activity {
         settings.setDisplayZoomControls(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
 
-        webView.addJavascriptInterface(new DownloadBridge(), "AndroidDownloader");
-
-        webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                super.onPageFinished(view, url);
-                view.evaluateJavascript(buildDownloadInterceptorJs(), null);
-            }
-        });
+        webView.addJavascriptInterface(new SaveBridge(), "AndroidSave");
 
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
@@ -143,7 +124,16 @@ public class MainActivity extends Activity {
                 Toast.makeText(this, "保存失败：文件为空", Toast.LENGTH_SHORT).show();
                 return;
             }
-            writeFileData(uri, fileData);
+            OutputStream os = getContentResolver().openOutputStream(uri);
+            if (os == null) {
+                throw new IOException("无法打开输出流");
+            }
+            try {
+                os.write(fileData);
+                os.flush();
+            } finally {
+                os.close();
+            }
             Toast.makeText(this, "保存成功：" + pending.filename,
                     Toast.LENGTH_LONG).show();
         } catch (Exception e) {
@@ -170,55 +160,18 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 
-    private static String buildDownloadInterceptorJs() {
-        return "(function() {"
-            + "  document.addEventListener('click', function(e) {"
-            + "    var a = e.target.closest('a[download]');"
-            + "    if (!a) return;"
-            + "    var href = a.href;"
-            + "    var filename = a.download || 'download.txt';"
-            + "    if (href.startsWith('blob:')) {"
-            + "      e.preventDefault();"
-            + "      e.stopPropagation();"
-            + "      var outputArea = document.getElementById('output');"
-            + "      var content = outputArea ? outputArea.value : '';"
-            + "      if (content && window.AndroidDownloader) {"
-            + "        AndroidDownloader.requestSaveFile(filename, content, 'text/plain');"
-            + "      }"
-            + "    }"
-            + "  }, true);"
-            + "})();";
-    }
-
-    private void writeFileData(Uri uri, byte[] data) throws IOException {
-        OutputStream os = getContentResolver().openOutputStream(uri);
-        if (os == null) {
-            throw new IOException("无法打开输出流");
-        }
-        try {
-            os.write(data);
-            os.flush();
-        } finally {
-            os.close();
-        }
-    }
-
-    public class DownloadBridge {
+    public class SaveBridge {
 
         @JavascriptInterface
-        public void requestSaveFile(final String filename,
-                                     final String content,
-                                     final String mimeType) {
+        public void saveText(final String filename, final String content) {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override
                 public void run() {
-                    pendingDownload = new PendingDownload(filename, content, mimeType);
-                    String resolvedMime = (mimeType != null && !mimeType.isEmpty())
-                            ? mimeType : "text/plain";
+                    pendingDownload = new PendingDownload(filename, content);
 
                     Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
                     intent.addCategory(Intent.CATEGORY_OPENABLE);
-                    intent.setType(resolvedMime);
+                    intent.setType("text/plain");
                     intent.putExtra(Intent.EXTRA_TITLE, filename);
 
                     try {

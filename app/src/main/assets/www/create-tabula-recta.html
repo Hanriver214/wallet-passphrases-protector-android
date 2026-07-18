@@ -47,7 +47,6 @@ const alertWordsNotSafe = $query("#alert-words-not-safe");
 
 $query('#generate-btn').addEventListener('click', event => {
   alertWordsNotSafe.style.display = "none";
-  // from english-words.js import englishWords
   const shuffled = secureShuffle(englishWords);
   if (isSameArrays(englishWords, shuffled)) {
     alertWordsNotSafe.style.display = "block";
@@ -55,12 +54,21 @@ $query('#generate-btn').addEventListener('click', event => {
   }
   const shuffled64 = btoa(JSON.stringify(shuffled));
   outputArea.value = shuffled64;
-  const blob = new Blob([shuffled64], { type: 'text/plain' });
   beforeGenerate.style.visibility = "hidden";
   afterGenerate.forEach(node => node.style.display = "block");
-  downloadBtn.href = URL.createObjectURL(blob);
   const today = getToday();
   downloadBtn.download = `mimabiao-${today}.txt`;
+});
+
+downloadBtn.addEventListener('click', event => {
+  const content = outputArea.value;
+  if (!content) return;
+  const filename = downloadBtn.download || 'mimabiao.txt';
+  if (window.AndroidSave) {
+    event.preventDefault();
+    event.stopPropagation();
+    AndroidSave.saveText(filename, content);
+  }
 });
 
   </script>
