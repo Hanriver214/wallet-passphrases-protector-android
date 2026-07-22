@@ -49,6 +49,8 @@
       <input type="password" id="decrypt-password" placeholder="输入解密密码" style="width:200px;">
       <button id="decrypt-btn">解密</button>
     </div>
+    <div id="hash-verification" class="alert-info" style="display:none; margin-top:8px;">
+    </div>
   </div>
 
   <h3 class="step-2">第二步</h3>
@@ -91,6 +93,7 @@ const outputArea =        $query("#output");
 const passwordPrompt =    $query("#password-prompt");
 const decryptPassword =   $query("#decrypt-password");
 const decryptBtn =        $query("#decrypt-btn");
+const hashVerification =  $query("#hash-verification");
 
 const allAlertsWhenUpload = $queryAll(".alerts-when-upload");
 const step2 =               $queryAll(".step-2");
@@ -140,17 +143,33 @@ window._onFileLoaded = async function(filename, content) {
 
 async function tryLoadMimabiao(password) {
   try {
-    const mimabiao64 = await importMimabiao(pendingContent, password || null);
-    const mimabiao = checkGetMimabiao(mimabiao64);
+    const result = await importMimabiao(pendingContent, password || null);
+    const mimabiao = checkGetMimabiao(result.data);
     if (!mimabiao) return;
     for (let i = 0; i < mimabiao.length; i++) {
       mimabiao_cn2en.set(chineseWords[i], mimabiao[i]);
     }
+    
+    let successMsg = "上传密码表成功，请进行第二步。";
+    let verifyMsg = "";
+    if (result.hashVerified) {
+      verifyMsg = "✓ SHA-256 完整性校验通过";
+    } else {
+      verifyMsg = "⚠ 此密码表未包含完整性校验信息";
+    }
+    if (result.encrypted) {
+      verifyMsg += " · 已加密";
+    }
+    successWhenUpload.innerText = successMsg;
     successWhenUpload.style.display = "block";
+    hashVerification.innerText = verifyMsg;
+    hashVerification.style.display = "block";
+    
     uploadBtn.disabled = true;
     step2.forEach(node => node.style.display = "block");
     inputWordsArea.focus();
   } catch (error) {
+    hashVerification.style.display = "none";
     if (error.message.includes("加密") || error.message.includes("密码")) {
       passwordPrompt.style.display = "block";
       decryptPassword.focus();

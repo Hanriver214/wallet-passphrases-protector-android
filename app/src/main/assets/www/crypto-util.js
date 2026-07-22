@@ -96,7 +96,7 @@ async function exportMimabiao(base64Data, enableHash, enableEncrypt, password) {
  * 导入密码表（自动检测新旧格式并校验/解密）
  * @param {string} content - 文件内容
  * @param {string|null} password - 用户提供的解密密码（加密时必需）
- * @returns {Promise<string>} 原始 base64 密码表数据
+ * @returns {Promise<{data: string, hashVerified: boolean, encrypted: boolean}>}
  */
 async function importMimabiao(content, password) {
   content = content.trim();
@@ -111,9 +111,11 @@ async function importMimabiao(content, password) {
 
   if (obj && obj.version === CRYPTO_VERSION) {
     let data = obj.data;
+    let hashVerified = false;
+    let encrypted = obj.encrypted || false;
 
     // 解密
-    if (obj.encrypted) {
+    if (encrypted) {
       if (!password) throw new Error("此密码表已加密，请输入密码");
       if (!obj.payload) throw new Error("加密数据损坏");
       data = await aesDecrypt(obj.payload, password);
@@ -127,9 +129,10 @@ async function importMimabiao(content, password) {
       if (computed !== obj.hash) {
         throw new Error("完整性校验失败：密码表已被篡改或损坏");
       }
+      hashVerified = true;
     }
 
-    return data;
+    return { data, hashVerified, encrypted };
   }
 
   // 旧格式：纯 base64 字符串（向后兼容）
@@ -137,7 +140,7 @@ async function importMimabiao(content, password) {
     const decoded = atob(content);
     const arr = JSON.parse(decoded);
     if (Array.isArray(arr) && arr.length === 2048) {
-      return content; // 旧格式直接返回
+      return { data: content, hashVerified: false, encrypted: false };
     }
   } catch (e) {
     // 不是旧格式
