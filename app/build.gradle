@@ -10,8 +10,8 @@ android {
         applicationId "com.walletprotector.android"
         minSdk 26
         targetSdk 34
-        versionCode 8
-        versionName "1.1.0"
+        versionCode 9
+        versionName "1.2.0"
         vectorDrawables.useSupportLibrary = true
     }
 
@@ -29,13 +29,14 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             if (System.getenv("KEYSTORE_BASE64") != null) {
                 signingConfig signingConfigs.release
             } else {
                 signingConfig signingConfigs.debug
             }
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 

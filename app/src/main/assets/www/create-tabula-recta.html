@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="style.css">
   <script src="english-words.js"></script>
   <script src="util.js"></script>
+  <script src="crypto-util.js"></script>
 
 </head>
 <body>
@@ -23,6 +24,16 @@
   <p id="alert-words-not-safe" class="alert-danger">
     出错，请再次点击 generate 按钮重新生成新的密码表。
   </p>
+
+  <div id="crypto-options" class="after-generate">
+    <p><strong>导出选项</strong></p>
+    <label><input type="checkbox" id="enable-hash" checked> 启用 SHA-256 完整性校验</label><br>
+    <label><input type="checkbox" id="enable-encrypt"> 启用 AES-256 加密</label>
+    <div id="password-section" style="display:none; margin-top:8px;">
+      <input type="password" id="encrypt-password" placeholder="输入加密密码" style="width:200px;">
+      <input type="password" id="encrypt-password-confirm" placeholder="确认加密密码" style="width:200px;">
+    </div>
+  </div>
 
   <div class="after-generate">
     <p>点击 <a id="download-btn" href="#" download="mimabiao.txt">download</a> 下载密码表。</p>
@@ -44,30 +55,58 @@ const beforeGenerate = $query("#before-generate");
 const afterGenerate = $queryAll(".after-generate");
 const downloadBtn = $query('#download-btn');
 const alertWordsNotSafe = $query("#alert-words-not-safe");
+const enableEncrypt = $query("#enable-encrypt");
+const passwordSection = $query("#password-section");
+const cryptoOptions = $query("#crypto-options");
 
-$query('#generate-btn').addEventListener('click', event => {
+let rawBase64 = "";
+
+enableEncrypt.addEventListener('change', () => {
+  passwordSection.style.display = enableEncrypt.checked ? "block" : "none";
+});
+
+$query('#generate-btn').addEventListener('click', async event => {
   alertWordsNotSafe.style.display = "none";
   const shuffled = secureShuffle(englishWords);
   if (isSameArrays(englishWords, shuffled)) {
     alertWordsNotSafe.style.display = "block";
     return;
   }
-  const shuffled64 = btoa(JSON.stringify(shuffled));
-  outputArea.value = shuffled64;
+  rawBase64 = btoa(JSON.stringify(shuffled));
+  outputArea.value = rawBase64;
   beforeGenerate.style.visibility = "hidden";
   afterGenerate.forEach(node => node.style.display = "block");
+  cryptoOptions.style.display = "block";
   const today = getToday();
   downloadBtn.download = `mimabiao-${today}.txt`;
 });
 
-downloadBtn.addEventListener('click', event => {
-  const content = outputArea.value;
-  if (!content) return;
+downloadBtn.addEventListener('click', async event => {
+  if (!rawBase64) return;
   const filename = downloadBtn.download || 'mimabiao.txt';
-  if (window.AndroidSave) {
+
+  const useHash = $query("#enable-hash").checked;
+  const useEncrypt = enableEncrypt.checked;
+  let password = "";
+  if (useEncrypt) {
+    const pw = $query("#encrypt-password").value;
+    const pw2 = $query("#encrypt-password-confirm").value;
+    if (!pw) { alert("请输入加密密码"); event.preventDefault(); return; }
+    if (pw !== pw2) { alert("两次输入的密码不一致"); event.preventDefault(); return; }
+    password = pw;
+  }
+
+  try {
+    const exported = await exportMimabiao(rawBase64, useHash, useEncrypt, password);
+    const content = JSON.stringify(exported, null, 2);
+    if (window.AndroidSave) {
+      event.preventDefault();
+      event.stopPropagation();
+      AndroidSave.saveText(filename, content);
+    }
+  } catch (err) {
+    alert("导出失败：" + err.message);
     event.preventDefault();
-    event.stopPropagation();
-    AndroidSave.saveText(filename, content);
   }
 });
 

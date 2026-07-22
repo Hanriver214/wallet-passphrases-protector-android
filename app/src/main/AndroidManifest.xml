@@ -21,6 +21,10 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.walletprotector.android.secure"
+            android:allowTaskReparenting="false"
+            android:excludeFromRecents="true"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:theme="@style/Theme.WalletProtector">
             <intent-filter>

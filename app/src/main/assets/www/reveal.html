@@ -9,6 +9,7 @@
   <script src="english-words.js"></script>
   <script src="chinese-words.js"></script>
   <script src="util.js"></script>
+  <script src="crypto-util.js"></script>
 
   <style>
   #output {
@@ -42,6 +43,11 @@
     <div id="alert-words-not-safe" class="alert-danger">
       密码表不安全，该密码表与 2048 个原始单词顺序完全一致。<br>
       请点击 <a href="create-tabula-recta.html">create-tabula-recta.html</a> 创建一个安全的密码表。
+    </div>
+    <div id="password-prompt" style="display:none; margin-top:8px;">
+      <p class="alert-info">此密码表已加密，请输入密码：</p>
+      <input type="password" id="decrypt-password" placeholder="输入解密密码" style="width:200px;">
+      <button id="decrypt-btn">解密</button>
     </div>
   </div>
 
@@ -82,9 +88,14 @@ const inputWordsArea =    $query("#input-words");
 const submitBtn =         $query("#submit-btn");
 const alertSubmitError =  $query("#alert-submit-error");
 const outputArea =        $query("#output");
+const passwordPrompt =    $query("#password-prompt");
+const decryptPassword =   $query("#decrypt-password");
+const decryptBtn =        $query("#decrypt-btn");
 
 const allAlertsWhenUpload = $queryAll(".alerts-when-upload");
 const step2 =               $queryAll(".step-2");
+
+let pendingContent = "";
 
 ["mousedown", "dblclick", "selectstart"].forEach(eventName => {
   outputArea.addEventListener(eventName, e => {
@@ -109,15 +120,28 @@ uploadBtn.addEventListener('click', event => {
   }
 });
 
-window._onFileLoaded = function(filename, content) {
+window._clearSensitiveData = function() {
+  inputWordsArea.value = "";
+  outputArea.value = "";
+  mimabiao_cn2en.clear();
+};
+
+window._onFileLoaded = async function(filename, content) {
   allAlertsWhenUpload.forEach(node => node.style.display = "none");
+  passwordPrompt.style.display = "none";
   if (!content) {
     alertWhenUpload.style.display = "block";
     alertWhenUpload.innerText = "出错： " + filename;
     return;
   }
+  pendingContent = content.trim();
+  await tryLoadMimabiao("");
+};
+
+async function tryLoadMimabiao(password) {
   try {
-    const mimabiao = checkGetMimabiao(content.trim());
+    const mimabiao64 = await importMimabiao(pendingContent, password || null);
+    const mimabiao = checkGetMimabiao(mimabiao64);
     if (!mimabiao) return;
     for (let i = 0; i < mimabiao.length; i++) {
       mimabiao_cn2en.set(chineseWords[i], mimabiao[i]);
@@ -127,10 +151,21 @@ window._onFileLoaded = function(filename, content) {
     step2.forEach(node => node.style.display = "block");
     inputWordsArea.focus();
   } catch (error) {
+    if (error.message.includes("加密") || error.message.includes("密码")) {
+      passwordPrompt.style.display = "block";
+      decryptPassword.focus();
+    } else {
       alertWhenUpload.style.display = "block";
-      alertWhenUpload.innerText = "出错： " + error;
+      alertWhenUpload.innerText = "出错： " + error.message;
+    }
   }
-};
+}
+
+decryptBtn.addEventListener('click', async () => {
+  const pw = decryptPassword.value;
+  if (!pw) { alert("请输入密码"); return; }
+  await tryLoadMimabiao(pw);
+});
 
 submitBtn.addEventListener('click', event => {
   alertSubmitError.innerText = "";

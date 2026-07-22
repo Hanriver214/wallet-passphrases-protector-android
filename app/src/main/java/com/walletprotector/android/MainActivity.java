@@ -7,6 +7,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -41,8 +44,18 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // 1. 禁止截图和录屏
+        getWindow().setFlags(
+                WindowManager.LayoutParams.FLAG_SECURE,
+                WindowManager.LayoutParams.FLAG_SECURE);
+
+        // 5. 防止 overlay 点击劫持攻击
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+
         FrameLayout root = new FrameLayout(this);
         webView = new WebView(this);
+        // 防止 overlay 攻击：过滤被遮挡的触摸事件
+        webView.setFilterTouchesWhenObscured(true);
         root.addView(webView, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT));
@@ -52,8 +65,9 @@ public class MainActivity extends Activity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(true);
-        settings.setAllowFileAccessFromFileURLs(true);
-        settings.setAllowUniversalAccessFromFileURLs(true);
+        // 6. 移除不安全的跨域配置（原为 true，已知不安全）
+        settings.setAllowFileAccessFromFileURLs(false);
+        settings.setAllowUniversalAccessFromFileURLs(false);
         settings.setSupportZoom(false);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
@@ -73,6 +87,38 @@ public class MainActivity extends Activity {
         webView.addJavascriptInterface(new LoaderBridge(), "AndroidLoader");
 
         webView.loadUrl("file:///android_asset/www/index.html");
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // 3. 应用退出前台时清理 WebView 敏感内存数据
+        if (webView != null) {
+            webView.evaluateJavascript(
+                "(function(){" +
+                "  if(window._clearSensitiveData) window._clearSensitiveData();" +
+                "  document.activeElement && document.activeElement.blur();" +
+                "})();", null);
+            webView.onPause();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (webView != null) {
+            webView.onResume();
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        // 额外清理：停止 WebView 加载并清除表单数据
+        if (webView != null) {
+            webView.stopLoading();
+            webView.clearFormData();
+        }
     }
 
     @Override
@@ -223,7 +269,12 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        // 彻底清理 WebView
         if (webView != null) {
+            webView.loadUrl("about:blank");
+            webView.stopLoading();
+            webView.clearHistory();
+            webView.removeAllViews();
             webView.destroy();
             webView = null;
         }

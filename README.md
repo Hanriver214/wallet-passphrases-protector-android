@@ -27,6 +27,30 @@
 - 把英语助记词转换为汉字助记词
 - 通过密码表 + 汉字助记词找回英语助记词
 
+## 安全特性（v1.2.0+）
+
+| 特性 | 说明 |
+|------|------|
+| **FLAG_SECURE** | 禁止系统截图和录屏，保护敏感信息 |
+| **完整性校验** | 密码表导出时附加 SHA-256 哈希，导入时自动验证 |
+| **AES-256 加密** | 密码表支持 AES-256-GCM + PBKDF2 加密，用户可自选 |
+| **内存清理** | 应用进入后台时自动清空输入框、输出框和映射表 |
+| **Overlay 防护** | WebView 启用 `filterTouchesWhenObscured`，防止点击劫持 |
+| **防干扰** | `singleTask` + 自定义 `taskAffinity` + `excludeFromRecents`，防止任务劫持 |
+| **代码混淆** | Release 构建启用 R8 混淆与资源压缩，提高反编译门槛 |
+| **WebView 安全** | 禁用 `allowUniversalAccessFromFileURLs` 和 `allowFileAccessFromFileURLs` |
+
+## 可验证开源（Reproducible Build）
+
+本应用完全开源，任何人都可以验证发布的 APK 与源码一致：
+
+1. 克隆本仓库到本地
+2. 使用相同的构建环境（JDK 17、Android SDK 34、Gradle 8.x）
+3. 执行 `./gradlew assembleRelease`
+4. 使用 `apktool` 或 `diff` 对比官方 APK 与自行构建的 APK 中的 `classes.dex` 和 `assets/www/` 内容
+
+Release 页面附带的 `.sig` 和 `.crt` 文件提供 Sigstore/Cosign 签名验证，确保 APK 未被篡改。
+
 ## 技术参数
 
 | 项目 | 值 |
@@ -34,7 +58,8 @@
 | applicationId | `com.walletprotector.android` |
 | minSdk | 26 (Android 8.0) |
 | targetSdk | 34 (Android 14) |
-| 签名 | debug keystore（仅供侧载安装，不可上架 Play Store） |
+| 加密算法 | AES-256-GCM + PBKDF2（100,000 次迭代） |
+| 校验算法 | SHA-256 |
 
 ## 本地构建
 
